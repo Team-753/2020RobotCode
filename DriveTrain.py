@@ -10,14 +10,15 @@ class DriveTrain:
 	diagonal = math.hypot(robotLength,robotWidth)
 	
 	def __init__(self):
-		self.frontLeft = SwerveModule(7,8,0,267.3,"Front Left") #drive ID, turn ID, encoder ID, encoder offset
-		self.frontRight = SwerveModule(1,2,2,217.75,"Front Right")
-		self.rearLeft = SwerveModule(5,6,3,160.2,"Rear Left")
-		self.rearRight = SwerveModule(3,4,1,314.4, "Rear Right")
+		self.frontLeft = SwerveModule(7,8,0,268.7,"Front Left") #drive ID, turn ID, encoder ID, encoder offset
+		self.frontRight = SwerveModule(1,2,2,219.8,"Front Right")
+		self.rearLeft = SwerveModule(5,6,3,159.9,"Rear Left")
+		self.rearRight = SwerveModule(3,4,1,311.5, "Rear Right")
 		
 	def move(self,x,y,z):
 		wpilib.SmartDashboard.putNumber("x",x)
 		wpilib.SmartDashboard.putNumber("y",y)
+		wpilib.SmartDashboard.putNumber("z",z)
 		
 		a = y - z*self.robotLength/self.diagonal
 		b = y + z*self.robotLength/self.diagonal
@@ -53,10 +54,32 @@ class DriveTrain:
 		self.rearRight.stationary()
 		
 	def zeroEncoders(self):
-		self.frontLeft.zeroEncoder()
-		self.frontRight.zeroEncoder()
-		self.rearLeft.zeroEncoder()
-		self.rearRight.zeroEncoder()
+		self.stopTurn()
+		self.brake()
+		
+		fLAbsolute = []
+		fRAbsolute = []
+		rLAbsolute = []
+		rRAbsolute = []
+		for i in range(6)
+			fLPosition = self.frontLeft.returnAbsolutes()
+			fRPosition = self.frontRight.returnAbsolutes()
+			rLPosition = self.rearLeft.returnAbsolutes()
+			rRPosition = self.rearRight.returnAbsolutes()
+			
+			fLAbsolute.append(fLPosition)
+			fRAbsolute.append(fRPosition)
+			rLAbsolute.append(rLPosition)
+			rRAbsolute.append(rRPosition)
+		fLPosition = sum(fLAbsolute)/len(fLAbsolute)
+		fRPosition = sum(fRAbsolute)/len(fRAbsolute)
+		rLPosition = sum(rLAbsolute)/len(rLAbsolute)
+		rRPosition = sum(rRAbsolute)/len(rRAbsolute)
+		
+		self.frontLeft.zeroEncoder(fLPosition)
+		self.frontRight.zeroEncoder(fRPosition)
+		self.rearLeft.zeroEncoder(rLPosition)
+		self.rearRight.zeroEncoder(rRPosition)
 		
 	def coast(self):
 		self.frontLeft.coast()
@@ -70,8 +93,24 @@ class DriveTrain:
 		self.rearLeft.brake()
 		self.rearRight.brake()
 		
+	def stopTurn(self):
+		self.frontLeft.stopTurn()
+		self.frontRight.stopTurn()
+		self.rearLeft.stopTurn()
+		self.rearRight.stopTurn()
+		
 	def checkEncoders(self):
 		self.frontLeft.checkEncoders()
 		self.frontRight.checkEncoders()
 		self.rearLeft.checkEncoders()
 		self.rearRight.checkEncoders()
+		
+	def drivePositions(self):
+		frontLeft = self.frontLeft.basicPosition()
+		frontRight = self.frontRight.basicPosition()
+		rearLeft = self.rearLeft.basicPosition()
+		rearRight = self.rearRight.basicPosition()
+		
+		average = (frontLeft+frontRight+rearLeft+rearRight)/4
+		return(average)
+		

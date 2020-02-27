@@ -9,20 +9,41 @@ class SwerveModule:
 	turnMotorEncoderConversion = 20 #NEO encoder gives 0-18 as 1 full rotation
 	absoluteEncoderConversion = .08877
 	
-	kP = .0039 #these aren't actually tuned, and even if they are close, they're for driving a light robot on tile
-	kI = 0
-	kD = 0
+	kFFDrive =  .002 #this is a fake number
+	kPDrive = .002 #this is also a fake number
+	kIDrive = 0
+	kDDrive = 0
 	
 	def __init__(self,driveID,turnID,encoderID,encoderOffset,name):
+		if name == "Front Left":
+			kPTurn = .006
+			kITurn = .002
+		elif name == "Front Right":
+			kPTurn = .008
+			kITurn = .002
+		elif name == "Rear Left":
+			kPTurn = .007
+			kITurn = .002
+		elif name == "Rear Right":
+			kPTurn = .007
+			kITurn = 0
+		else:
+			kPTurn = .0066
+			kITurn = .0018
+		kDTurn = 0
+		
 		self.driveMotor = rev.CANSparkMax(driveID,rev.MotorType.kBrushless)
 		self.turnMotor = rev.CANSparkMax(turnID,rev.MotorType.kBrushless)
+		
 		self.turnEncoder = self.turnMotor.getEncoder()
 		self.turnEncoder.setPositionConversionFactor(self.turnMotorEncoderConversion) #now is 0-360
+		
+		self.driveEncoder = self.driveMotor.getEncoder()
 		
 		self.absoluteEncoder = wpilib.AnalogInput(encoderID)
 		self.encoderOffset = encoderOffset
 		
-		self.turnController = wpilib.controller.PIDController(self.kP, self.kI, self.kD)
+		self.turnController = wpilib.controller.PIDController(kPTurn, kITurn, kDTurn)
 		self.turnController.enableContinuousInput(-180,180) #the angle range we decided to make standard
 		
 		self.turnDeadband = .035
@@ -53,6 +74,10 @@ class SwerveModule:
 		
 		wpilib.SmartDashboard.putNumber(self.moduleName,position)
 		
+		wpilib.SmartDashboard.putNumber(self.moduleName + " Position",position)
+		badVelocity = self.driveEncoder.getVelocity()
+		wpilib.SmartDashboard.putNumber(self.moduleName + " Velocity",badVelocity)
+		
 	def stationary(self):
 		self.driveMotor.set(0) #this will be smoother once we drive with velocity PID (by setting setpoint to 0)
 		
@@ -63,10 +88,19 @@ class SwerveModule:
 			turnSpeed = 0
 		
 		self.turnMotor.set(turnSpeed) #just let the turn motor go to its most recent goal
+		wpilib.SmartDashboard.putNumber(self.moduleName + " Position",position)
+		badVelocity = self.driveEncoder.getVelocity()
+		wpilib.SmartDashboard.putNumber(self.moduleName + " Velocity",badVelocity)
 		
-	def zeroEncoder(self):
-		absolutePosition = 360 - self.absoluteEncoder.getValue()*self.absoluteEncoderConversion + self.encoderOffset
-		self.turnEncoder.setPosition(absolutePosition)
+	def returnAbsolutes(self):
+		position = self.absoluteEncoder.getValue()*self.absoluteEncoderConversion
+		return(position)
+		
+	def zeroEncoder(self,absolutePosition):
+		sparkPosition = 360 - absolutePosition + self.encoderOffset
+		
+		self.driveEncoder.setPosition(0)
+		self.turnEncoder.setPosition(sparkPosition)
 		self.turnController.setSetpoint(0)
 		
 	def brake(self):
@@ -77,8 +111,16 @@ class SwerveModule:
 		self.driveMotor.setIdleMode(rev.IdleMode.kCoast)
 		self.turnMotor.setIdleMode(rev.IdleMode.kCoast)
 		
+	def stopTurn(self):
+		self.turnMotor.set(0)
+		
 	def checkEncoders(self):
 		absolutePosition = self.absoluteEncoder.getValue()*self.absoluteEncoderConversion
 		position = self.encoderBoundedPosition()
 		wpilib.SmartDashboard.putNumber(self.moduleName,absolutePosition)
 		wpilib.SmartDashboard.putNumber(self.moduleName + " NEO",position)
+		
+	def basicPosition(self):
+		position = self.driveEncoder.getPosition()
+		return(position)
+		

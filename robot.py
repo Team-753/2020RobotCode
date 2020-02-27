@@ -5,7 +5,7 @@ import math
 import rev
 from wpilib import controller as controller
 from DriveTrain import DriveTrain
-#from Climb import Climb
+from Climb import Climb
 from Feeder import Feeder
 from Intake import Intake
 from Turret import Turret
@@ -17,40 +17,39 @@ class MyRobot(wpilib.TimedRobot):
 		self.navx.reset()
 		
 		self.joystick = wpilib.Joystick(0)
-		self.auxiliaryJoystick1 = wpilib.Joystick(1)
-		self.auxiliaryJoystick2 = wpilib.Joystick(2)
+		self.auxiliaryJoystick = wpilib.Joystick(1)
 		
 		
 		self.drive = DriveTrain()
-		#self.climb = Climb(12) #climb ID
+		self.climb = Climb(12) #climb ID
 		self.feeder = Feeder(9) #feeder ID
 		self.intake = Intake(11,10) #intake ID, half moon ID
 		self.turret = Turret(15,14) #rotate ID, flywheel ID
 		
 		self.drive.zeroEncoders()
-		#self.climb.coast()
+		self.climb.coast()
 		self.feeder.brake()
 		self.intake.coast()
 		self.turret.brake()
 		
 		#constants
 		self.joystickDeadband = .2
-		self.fieldOriented = False
-		self.scaling = .5
+		self.fieldOriented = True
+		self.scaling = .8
 		self.intakeSpeed = .35
-		self.halfMoonSpeed = .75
-		self.feederSpeed = .75
+		self.halfMoonSpeed = .8
+		self.feederSpeed = .8
 		self.flywheelRPM = 0
 		self.turretSpeed = .1
+		self.dumbAutoDistance = 20 #inches? ticks? meters? About 8 per foot, so...
 		
 		#put constants to shuffleboard
-		wpilib.Shuffleboard.putNumber("Joystick scale factor", self.scaling)
+		wpilib.SmartDashboard.putNumber("Joystick scale factor", self.scaling)
 		wpilib.SmartDashboard.putNumber("Joystick deadband", self.joystickDeadband)
 		wpilib.SmartDashboard.putBoolean("Field Oriented", self.fieldOriented)
 		wpilib.SmartDashboard.putNumber("Intake speed",self.intakeSpeed)
 		wpilib.SmartDashboard.putNumber("Half moon speed",self.halfMoonSpeed)
 		wpilib.SmartDashboard.putNumber("Feeder speed",self.feederSpeed)
-		wpilib.SmartDashboard.putNumber("Flywheel RPM",self.flywheelRPM)
 		wpilib.SmartDashboard.putNumber("Turret speed",self.turretSpeed)
 		
 	def checkDeadband(self, axis):
@@ -61,14 +60,20 @@ class MyRobot(wpilib.TimedRobot):
 		
 	def checkSwitches(self):
 		#buttons list
-		autoManualSwitch = self.auxiliaryJoystick2.getRawButton(1)
-		intakeIn = self.joystick.getRawButton(1)
-		intakeOut = self.joystick.getRawButton(2)
-		feederIn = self.auxiliaryJoystick1.getRawButton(1)
-		feedOut = self.auxiliaryJoystick1.getRawButton(11)
-		manualFlywheel = self.auxiliaryJoystick2.getRawButton(4)
-		turretClockwise = self.auxiliaryJoystick1.getRawButton(3)
-		turretCounterclockwise = self.auxiliaryJoystick1.getRawButton(4)
+		autoManualSwitch = self.auxiliaryJoystick.getRawButton(
+		
+		intakeIn = self.joystick.getRawButton(2)
+		intakeOut = self.auxiliaryJoystick.getRawButton(
+		
+		feederIn = self.auxiliaryJoystick.getRawButton(
+		feedOut = self.auxiliaryJoystick.getRawButton(
+		
+		manualFlywheel = self.auxiliaryJoystick.getRawButton(
+		turretClockwise = self.auxiliaryJoystick.getRawButton(
+		turretCounterclockwise = self.auxiliaryJoystick.getRawButton(
+		
+		climbUp = self.auxiliaryJoystick.getRawButton(
+		climbDown = self.auxiliaryJoystick.getRawButton(
 		
 		#get the speeds from shuffleboard
 		intakeSpeed = wpilib.SmartDashboard.getNumber("Intake speed",self.intakeSpeed)
@@ -76,55 +81,65 @@ class MyRobot(wpilib.TimedRobot):
 		feederSpeed = wpilib.SmartDashboard.getNumber("Feeder speed",self.feederSpeed)
 		flywheelRPM = wpilib.SmartDashboard.getNumber("Flywheel RPM",self.flywheelRPM)
 		turretSpeed = wpilib.SmartDashboard.getNumber("Turret speed",self.turretSpeed)
+		flywheelSpeed = self.auxiliaryJoystick.getRawButton(
 		
 		#manual controls
-		if autoManualSwitch:
-			#intake control
-			if intakeIn:
-				self.intake.collect(intakeSpeed,halfMoonSpeed) #intake speed, half moon speed
-			elif intakeOut:
-				self.intake.expel(intakeSpeed,halfMoonSpeed) #intake speed, half moon speed
-			else:
-				self.intake.stop()
-			#feeder control
-			if feederIn:
-				self.feeder.feed(feederSpeed) #feeder speed
-			else:
-				self.feeder.stop()
-			'''elif feederOut:
-				self.feeder.reverse() #feeder speed
-			else:
-				self.feeder.stop()'''
-			#flywheel control
-			if manualFlywheel:
-				self.turret.flywheelManual(flywheelRPM) #rpm
-			else:
-				self.turret.flywheelManual(0)
-			#turret rotation
-			if turretClockwise:
-				self.turret.turretManual(turretSpeed) #turret speed
-			elif turretCounterclockwise:
-				self.turret.turretManual(-turretSpeed) #turret speed
-			else:
-				self.turret.turretManual(0)
+		#if autoManualSwitch:
+		
+		#intake control
+		if intakeIn:
+			self.intake.collect(intakeSpeed,halfMoonSpeed) #intake speed, half moon speed
+		elif intakeOut:
+			self.intake.expel(intakeSpeed,halfMoonSpeed) #intake speed, half moon speed
+		else:
+			self.intake.stop()
+		#feeder control
+		if feederIn:
+			self.feeder.feed(feederSpeed) #feeder speed
+		elif feederOut:
+			self.feeder.reverse() #feeder speed
+		else:
+			self.feeder.stop()
+		#flywheel control
+		if manualFlywheel:
+			self.turret.flywheelManual(flywheelRPM) #rpm
+		else:
+			self.turret.flywheelManual(0)
+		#turret rotation
+		if turretClockwise:
+			self.turret.turretManual(-turretSpeed) #turret speed
+		elif turretCounterclockwise:
+			self.turret.turretManual(turretSpeed) #turret speed
+		else:
+			self.turret.turretManual(0)
 		
 	def autonomousInit(self):
-		self.drive.coast()
+		self.drive.zeroEncoders()
+		self.navx.reset()
 		print('autonomous started')
 		
 	def autonomousPeriodic(self):
-		self.drive.checkEncoders()
+		location = self.drive.drivePositions()
+		#shooting stuff from teleop
+		if location < self.dumbAutoDistance:
+			difference = self.dumbAutoDistance - location
+			speed = difference/(self.dumbAutoDistance*10) + .1
+			self.drive.move(0,speed,0)
+			self.intake.collect(.35,.8)
+		else:
+			self.drive.stationary()
+		#shooting stuff from teleop
 		
 	def teleopInit(self):
-		self.drive.zeroEncoders()
 		self.drive.brake()
-		self.navx.reset() #please delete this before competition
+		
 		print('teleop started')
+		self.intake.stop()
 		
 	def teleopPeriodic(self):
 		self.checkSwitches()
 		
-		scale = wpilib.Shuffleboard.getNumber("Joystick scale factor", self.scaling)
+		scale = wpilib.SmartDashboard.getNumber("Joystick scale factor", self.scaling)
 		fieldOriented = wpilib.SmartDashboard.getBoolean("Field Oriented", self.fieldOriented)
 		
 		x = scale*self.checkDeadband(self.joystick.getX())
@@ -135,7 +150,13 @@ class MyRobot(wpilib.TimedRobot):
 		wpilib.SmartDashboard.putNumber("angle",angle)
 		angle *= math.pi/180
 		
-		if fieldOriented:
+		'''if fieldOriented:
+			cos = math.cos(angle)
+			sin = math.sin(angle)
+			temp = x*sin - y*cos
+			y = x*cos + y*sin
+			x = temp'''
+		if not self.joystick.getRawButton(1):
 			cos = math.cos(angle)
 			sin = math.sin(angle)
 			temp = x*sin - y*cos
@@ -146,6 +167,14 @@ class MyRobot(wpilib.TimedRobot):
 			self.drive.move(x,y,z)
 		else:
 			self.drive.stationary()
+			
+		print(self.drive.drivePositions())
+	def testInit(self):
+		self.drive.coast()
+		print("Starting tests")
+		
+	def testPeriodic(self):
+		self.DriveTrain.checkEncoders()
 		
 	def disabledInit(self):
 		self.drive.coast()

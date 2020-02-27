@@ -2,34 +2,49 @@ import wpilib
 import rev
 
 class Turret: #this is currently just manual control, but motors can only be instantiated once so
-	def __init__(self, rotateID, flywheelID): #eventually all the turret stuff will go here
-		self.rotateMotor = rev.CANSparkMax(rotateID, rev.MotorType.kBrushless)
+	def __init__(self, turretID, flywheelID): #eventually all the turret stuff will go here
+		self.turretMotor = rev.CANSparkMax(turretID, rev.MotorType.kBrushless)
 		self.flywheelMotor = rev.CANSparkMax(flywheelID, rev.MotorType.kBrushless)
-		self.rotateEncoder = self.rotateMotor.getEncoder()
+		self.turretEncoder = self.turretMotor.getEncoder()
 		self.flywheelEncoder = self.flywheelMotor.getEncoder()
 		
-		kPTurret = .002
-		kITurret = .001
-		kDTurret = 0
+		self.turretEncoder.setPositionConversionFactor(12.414)
 		
-		self.turretController = wpilib.controller.PIDController(kPTurret,kITurret,kDTurret)
+		kPTurret = .007
+		kITurret = .06
+		kDTurret = 0
+		kIZoneTurret = 3 #degrees in which position error is integrated
+		turretMaxOutput = .25
+		turretMinOutput = .25
+		
+		self.turretTolerance = .3 #degrees
+		
+		self.turretController = self.turretMotor.getPIDController()
+		self.turretController.setP(kPTurret)
+		self.turretController.setI(kITurret)
+		self.turretController.setD(kDTurret)
+		self.turretController.setIZone(kIZoneTurret)
+		self.turretController.setOutputRange(turretMinOutput,turretMaxOutput)
 		
 	def flywheelManual(self,rpm):
 		speed = rpm/5700
 		self.flywheelMotor.set(-speed)
 		
 	def turretManual(self,speed):
-		self.rotateMotor.set(speed)
+		self.turretMotor.set(speed)
 		
-	def rotate(self):
-		if self.rotateEncoder < threshold:
-			pass
+	def turretPosition(self,goal):
+		position = self.turretEncoder.getPosition()
+		if abs(position - goal) > self.turretTolerance:
+			self.turretController.setReference(goal,rev.ControlType.kPosition)
+		else:
+			self.turretMotor.set(0)
 		
 	def coast(self):
-		self.rotateMotor.setIdleMode(rev.IdleMode.kCoast)
+		self.turretMotor.setIdleMode(rev.IdleMode.kCoast)
 		self.flywheelMotor.setIdleMode(rev.IdleMode.kCoast)
 		
 	def brake(self):
-		self.rotateMotor.setIdleMode(rev.IdleMode.kBrake)
+		self.turretMotor.setIdleMode(rev.IdleMode.kBrake)
 		self.flywheelMotor.setIdleMode(rev.IdleMode.kBrake)
 		
