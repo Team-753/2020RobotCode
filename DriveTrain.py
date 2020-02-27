@@ -61,7 +61,7 @@ class DriveTrain:
 		fRAbsolute = []
 		rLAbsolute = []
 		rRAbsolute = []
-		for i in range(6)
+		for i in range(6):
 			fLPosition = self.frontLeft.returnAbsolutes()
 			fRPosition = self.frontRight.returnAbsolutes()
 			rLPosition = self.rearLeft.returnAbsolutes()

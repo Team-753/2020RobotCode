@@ -12,10 +12,8 @@ import threading
 
 class Turret:
 	def __init__(self):
-	
-		self.maxTurretSpeed = .25
+		self.maxTurretSpeed = .2
 		
-	
 		self.flywheelPort = 0
 		#determine from Chazzy-poo
 		self.hoodReduction = 12
@@ -34,7 +32,7 @@ class Turret:
 		self.turretEncoder.setPositionConversionFactor(12.414)
 		self.spinEncoder = self.spinMotor.getEncoder()
 		
-		self.kP = 0.0085
+		self.kP = 0.005
 		self.kI = 0.0
 		self.kD = 0.0
 		
@@ -42,13 +40,13 @@ class Turret:
 		self.turretTurnController.setSetpoint(0)
 		self.turretTurnController.setTolerance(0.1)
 		
-		self.turretMin = -90
-		self.turretMax = 90
+		self.turretMin = -80
+		self.turretMax = 80
 		
 		self.sP = 0.0
 		self.sI = 0.0
 		self.sD = 0.0
-		self.cruisingVelocity = 5500 #in rpm
+		self.cruisingVelocity = 5600 #in rpm
 		self.minVelocity = 1000
 		
 		self.spinController = self.spinMotor.getPIDController()
@@ -65,61 +63,50 @@ class Turret:
 		self.limitRPM  = 2200
 		self.spinMotor.setSmartCurrentLimit(self.stallLimit,self.freeLimit,self.limitRPM)
 		
-		
-		self.hoodServo = wpilib.PWM(0)
-		self.hoodServo2 = wpilib.PWM(1)
-		#not a definite value, just guesstimation
-		self.defaultVelocity = 5500
-		self.startAngle = 30 #need to determine physically what the angle is initially
-		self.idealAngle = 35
 	def checkEncoders(self):
 		absPosition = 360*self.absTurretEncoder.getValue()/2522
 		position = self.turretEncoder.getPosition()
 		print("Absolute says" + str(absPosition))
 		print("Normal is" + str(position))
+		
 	def zeroTurret(self):
 		absEncoderCorrected = (360*(self.absTurretEncoder.getValue()/2522))
 		self.turretEncoder.setPosition(absEncoderCorrected -320)
+		
 	def velocityControl(self,desiredVelocity):
-		
 		self.spinController.setReference(desiredVelocity,rev.ControlType.kSmartVelocity,self.flywheelPort)
-		self.spinController2.setReference(desiredVelocity,rev.ControlType.kSmartVelocity,self.flywheelPort)
-		hoodAngle = 90-self.idealAngle+self.startAngle
-		self.hoodServo.setPosition((90-self.idealAngle+self.startAngle)/360)
-		
-	def angularControl(self):
-		
-		self.spinController.setReference(self.defaultVelocity,rev.ControlType.kSmartVelocity,self.flywheelPort)
-		#self.spinController2.setReference(self.defaultVelocity,rev.ControlType.kSmartVelocity,self.flywheelPort)
-		
-		self.angTarget = 1
-		
-		#the angle of the circular hood section
-		self.turretAngle =90 + -self.angTarget + self.startAngle
-		
-		self.hoodServo.setPosition((self.hoodReduction*self.turretAngle)/360)
-		self.hoodServo2.setPosition((self.hoodReduction*self.turretAngle)/360)
-		
 		
 	def turretAlign(self,yaw):
 		#assume negative moves negatively and pos moves positively
 		turretOutput = self.turretTurnController.calculate(yaw)
 		print('turret alignment engaged, moving at ' +str(turretOutput))
 		
+		position = self.turretEncoder.getPosition()
+		print('the turret is at ' + str(position))
+		
+			#clockwise is negative
+		if turretOutput < -self.turretMaxSpeed:
+			self.turretOutput = -self.turretMaxSpeed
+		elif turretOutput > self.turretMaxSpeed:
+			self.turretOutput = self.turretMaxSpeed
+		
+		if self.turretMin < position < self.turretMax:
+			self.turretMotor.set(turretOutput)
+		else:
+			self.turretMotor.set(0)
+		
+	def turretPretendAlign(self,yaw):
+		turretOutput = self.turretTurnController.calculate(yaw)
+		print('turret alignment engaged, moving at ' +str(turretOutput))
 		
 		position = self.turretEncoder.getPosition()
 		print('the turret is at ' + str(position))
-		if self.turretMin < position < self.turretMax:
-			self.turretMotor.set(turretOutput*self.maxTurretSpeed)
+		
 			#clockwise is negative
-			
-		if self.turretMin > self.position and turretOutput <0:
-			self.turretMotor.set(turretOutput*self.maxTurretSpeed)
-			
-		if self.turretMax < self.position and turretOutput >0:
-			self.turretMotor.set(turretOutput*self.maxTurretSpeed)
-		else:
-			self.turretMotor.set(0)
+		if turretOutput < -self.turretMaxSpeed:
+			self.turretOutput = -self.turretMaxSpeed
+		elif turretOutput > self.turretMaxSpeed:
+			self.turretOutput = self.turretMaxSpeed
 		
 	def stopTurret(self):
 		self.turretMotor.set(0)
@@ -143,3 +130,12 @@ class Turret:
 			self.engageMotor.set(0.7) #not a confirmed speed
 		else:
 			self.engageMotor.set(0)
+		
+	def brake(self):
+		self.turretMotor.setIdleMode(rev.IdleMode.kBrake)
+		self.spinMotor.setIdleMode(rev.IdleMode.kBrake)
+		
+	def coast(self):
+		self.turretMotor.setIdleMode(rev.IdleMode.kCoast)
+		self.spinMotor.setIdleMode(rev.IdleMode.kCoast)
+		

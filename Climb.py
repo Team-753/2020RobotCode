@@ -9,10 +9,10 @@ class Climb:
 		self.climbEncoder.setPositionConversionFactor(self.encoderConversionFactor)
 		
 	def extend(self,speed):
-		self.climbMotor.set(speed)
+		self.climbMotor.set(-speed)
 		
 	def contract(self,speed):
-		self.climbMotor.set(-speed)
+		self.climbMotor.set(speed)
 		
 	def coast(self):
 		self.climbMotor.setIdleMode(rev.IdleMode.kCoast)
