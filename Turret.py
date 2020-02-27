@@ -26,9 +26,8 @@ class Turret: #this is currently just manual control, but motors can only be ins
 		self.turretController.setIZone(kIZoneTurret)
 		self.turretController.setOutputRange(turretMinOutput,turretMaxOutput)
 		
-	def flywheelManual(self,rpm):
-		speed = rpm/5700
-		self.flywheelMotor.set(-speed)
+	def flywheelManual(self,speed):
+		self.flywheelMotor.set(speed)
 		
 	def turretManual(self,speed):
 		self.turretMotor.set(speed)

@@ -73,6 +73,39 @@ class MyRobot(wpilib.TimedRobot):
 			self.turret.turretAlign(sd.getEntry('targetYaw').getDouble(0))
 		else:
 			self.turret.stopTurret()
+		
+	def testInit(self):
+		self.turret.coast()
+		
+	def testPeriodic(self):
+		if self.joy.getRawButton(2):
+			print('test')
+		
+		self.area = (sd.getEntry('targetFittedWidth').getDouble(0))*(sd.getEntry('targetFittedHeight').getDouble(0))
+		try :
+			self.distance = self.aNaught/self.area
+			
+		except:
+			print("no area")
+			self.distance = 1
+		
+		print('the yaw is '+ str(sd.getEntry('targetYaw').getDouble(0)))
+		print('the pitch is ' + str(sd.getEntry('targetPitch').getDouble(0)))
+		#print('the distance is ' + str(self.distance*self.dNaught))
+		
+		#print('turret position at ' + str(360*(wpilib.AnalogInput(4).getValue()/2522)))
+		
+
+		if self.joy.getRawButton(7):
+			print('vision time')
+			self.visionTime = True
+		if self.joy.getRawButton(8):
+			self.visionTime = False
+			
+		if self.visionTime:
+			self.turret.turretPretendAlign(sd.getEntry('targetYaw').getDouble(0))
+		else:
+			self.turret.stopTurret()
 
 if __name__ == "__main__":
 	wpilib.run(MyRobot)
