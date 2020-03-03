@@ -26,7 +26,10 @@ class Turret: #this is currently just manual control, but motors can only be ins
 		self.turretController.setIZone(kIZoneTurret)
 		self.turretController.setOutputRange(turretMinOutput,turretMaxOutput)
 		
+		#self.lights = wpilib.PWM(0)
+		
 	def flywheelManual(self,speed):
+		speed *= -1
 		self.flywheelMotor.set(speed)
 		
 	def turretManual(self,speed):

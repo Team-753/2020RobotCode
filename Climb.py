@@ -4,7 +4,7 @@ import rev
 class Climb:
 	encoderConversionFactor = 64 #this isn't real and needs to be changed
 	def __init__(self, motorID):
-		self.climbMotor = rev.CANSparkMax(ID, rev.MotorType.kBrushless)
+		self.climbMotor = rev.CANSparkMax(motorID, rev.MotorType.kBrushless)
 		self.climbEncoder = self.climbMotor.getEncoder()
 		self.climbEncoder.setPositionConversionFactor(self.encoderConversionFactor)
 		

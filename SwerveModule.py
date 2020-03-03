@@ -25,7 +25,7 @@ class SwerveModule:
 			kPTurn = .007
 			kITurn = .002
 		elif name == "Rear Right":
-			kPTurn = .007
+			kPTurn = .0066
 			kITurn = 0
 		else:
 			kPTurn = .0066
@@ -33,6 +33,7 @@ class SwerveModule:
 		kDTurn = 0
 		
 		self.driveMotor = rev.CANSparkMax(driveID,rev.MotorType.kBrushless)
+		self.driveMotor.clearFaults()
 		self.turnMotor = rev.CANSparkMax(turnID,rev.MotorType.kBrushless)
 		
 		self.turnEncoder = self.turnMotor.getEncoder()
