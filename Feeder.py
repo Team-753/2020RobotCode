@@ -5,19 +5,15 @@ class Feeder:
 	def __init__(self, motorID):
 		self.feederMotor = rev.CANSparkMax(motorID, rev.MotorType.kBrushless)
 		self.feederEncoder = self.feederMotor.getEncoder()
-		#self.servo = wpilib.PWM(0)
 		
 	def feed(self, speed):
-		self.feederMotor.set(speed)
-		#self.servo.setPosition(.5)
+		self.feederMotor.setVoltage(speed)
 		
 	def reverse(self, speed): #this is a forbidden method but may be necessary
-		self.servo.setPosition(.5)
-		#self.feederMotor.set(-speed)
+		self.feederMotor.setVoltage(-speed)
 		
 	def stop(self):
 		self.feederMotor.set(0)
-		#self.servo.setPosition(1)
 		
 	def zeroEncoder(self):
 		self.feederEncoder.setPosition(0)

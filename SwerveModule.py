@@ -9,11 +9,6 @@ class SwerveModule:
 	turnMotorEncoderConversion = 20 #NEO encoder gives 0-18 as 1 full rotation
 	absoluteEncoderConversion = .08877
 	
-	kFFDrive =  .002 #this is a fake number
-	kPDrive = .002 #this is also a fake number
-	kIDrive = 0
-	kDDrive = 0
-	
 	def __init__(self,driveID,turnID,encoderID,encoderOffset,name):
 		if name == "Front Left":
 			kPTurn = .006
@@ -33,7 +28,7 @@ class SwerveModule:
 		kDTurn = 0
 		
 		self.driveMotor = rev.CANSparkMax(driveID,rev.MotorType.kBrushless)
-		self.driveMotor.clearFaults()
+		self.driveMotor.restoreFactoryDefaults()
 		self.turnMotor = rev.CANSparkMax(turnID,rev.MotorType.kBrushless)
 		
 		self.turnEncoder = self.turnMotor.getEncoder()
@@ -47,8 +42,7 @@ class SwerveModule:
 		self.turnController = wpilib.controller.PIDController(kPTurn, kITurn, kDTurn)
 		self.turnController.enableContinuousInput(-180,180) #the angle range we decided to make standard
 		
-		self.turnDeadband = .035
-		
+		self.turnDeadband = .035 #this needs to be updated
 		self.moduleName = name
 		
 	def encoderBoundedPosition(self):
