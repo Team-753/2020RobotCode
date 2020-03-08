@@ -2,7 +2,6 @@
 
 import wpilib
 import math
-import time
 from DriveTrain import DriveTrain
 from Climb import Climb
 from Feeder import Feeder
@@ -10,11 +9,7 @@ from Intake import Intake
 from Turret import Turret
 from navx import AHRS
 from networktables import NetworkTables
-import logging
-import sys
-import time
 import threading
-from AutoTurret import Turret
 
 cond = threading.Condition()
 notified = False
@@ -35,7 +30,7 @@ class MyRobot(wpilib.TimedRobot):
 	def robotInit(self):
 		self.navx = AHRS.create_spi()
 		wpilib.CameraServer.launch()
-		pilib.DigitalOutput(0).set(0)
+		wpilib.DigitalOutput(0).set(0)
 		
 		self.joystick = wpilib.Joystick(0)
 		self.auxiliary = wpilib.XboxController(1)
@@ -52,11 +47,11 @@ class MyRobot(wpilib.TimedRobot):
 		
 		#constants
 		self.joystickDeadband = .2
-		self.scaling = .8
+		self.scaling = .85
 		self.intakeSpeed = .35
 		self.halfMoonSpeed = .8
 		self.feederSpeed = .85
-		self.turretSpeed = .085
+		self.turretSpeed = .2
 		self.climbExtend = .35
 		self.climbContract = .75
 		self.manualFlywheelSpeed = 8.5 #volts
@@ -65,8 +60,12 @@ class MyRobot(wpilib.TimedRobot):
 		
 		wpilib.SmartDashboard.putNumber("Shooter RPM",0)
 		
-		self.dNaught = 18.0416
-		self.aNaught = 5946
+		kP = .0014
+		kI = .00035
+		kD = 0
+		self.robotAngleController = wpilib.controller.PIDController(kP, kI, kD)
+		self.robotAngleController.enableContinuousInput(-180,180)
+		
 	def checkDeadband(self, axis, check):
 		if check:
 			deadband = self.joystickDeadband
@@ -94,11 +93,11 @@ class MyRobot(wpilib.TimedRobot):
 		climbDown = self.auxiliary.getAButton()
 		turretClockwise = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hand.kRightHand)
 		turretCounterclockwise = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hand.kLeftHand)
-		autoAim = False #trigger stuff
-		manualFlywheel = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand)
+		autoAim = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand)
+		manualFlywheel = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kLeftHand)
 		feederIn = self.auxiliary.getBButton()
 		
-		autoFlywheelSpeed = wpilib.SmartDashboard.getNumber("Shooter RPM",4000)
+		manualFlywheelSpeed = wpilib.SmartDashboard.getNumber("Shooter RPM",4000)
 		
 		#intake control
 		if intakeIn:
@@ -117,23 +116,11 @@ class MyRobot(wpilib.TimedRobot):
 			self.climb.stop()
 		
 		if autoAim:
-			self.area = (sd.getEntry('targetFittedWidth').getDouble(0))*(sd.getEntry('targetFittedHeight').getDouble(0))
-			try :
-				self.distance = (self.aNaught/self.area)*self.dNaught
-				
-			except:
-				print("no area")
-				self.distance = 1
 			wpilib.DigitalOutput(0).set(1)
-			velocity = 1#regressed model
-			Turret().turretAlign(sd.getEntry('targetYaw').getDouble(0),velocity)
-			
-			
+			self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0))
 		else:
 			#manual turret rotation
 			wpilib.DigitalOutput(0).set(0)
-			Turret().stopTurret()
-			
 			if turretClockwise:
 				self.turret.turretManual(self.turretSpeed) #turret speed percent
 			elif turretCounterclockwise:
@@ -143,7 +130,7 @@ class MyRobot(wpilib.TimedRobot):
 			
 			#manual flywheel
 			if manualFlywheel:
-				self.turret.flywheelRPM(autoFlywheelSpeed)
+				self.turret.flywheelRPM(manualFlywheelSpeed)
 				if feederIn:
 					self.feeder.feed(self.feederSpeed)
 				else:
@@ -151,6 +138,17 @@ class MyRobot(wpilib.TimedRobot):
 			else:
 				self.turret.flywheelManual(0)
 				self.feeder.stop()
+		
+	def boundedNavx(self):
+		angle = self.drive.getRobotAngle()
+		angle %= 360
+		if angle < 0:
+			angle += 360
+		if angle < 90:
+			angle += 90
+		else:
+			angle -= 270
+		return angle
 		
 	def autonomousInit(self):
 		self.navx.reset()
@@ -168,21 +166,23 @@ class MyRobot(wpilib.TimedRobot):
 	def autonomousPeriodic(self):
 		#we should put something here at some point
 		circumference = 4*math.pi
-		goDistance = 36 #inches
+		goDistanceY = 36 #inches
 		encoderPointsPerRev = 18
 		revsForFeeder = 500
 		
-		if self.drive.averageWheelPosition() < (goDistance/circumference)*encoderPointsPerRev:
+		x,y = self.drive.averageWheelPosition()
+		if y < (goDistanceY/circumference)*encoderPointsPerRev:
 			self.drive.move(0,1,0)
 		else:
 			self.drive.stationary()
 			if self.feeder.getPosition() < revsForFeeder*encoderPointsPerRev:
+				wpilib.DigitalOutput(0).set(1)
 				self.feeder.feed(self.feederSpeed)
-				#aiming code
+				self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0))
 			else:
+				wpilib.DigitalOutput(0).set(0)
 				self.feeder.stop()
 				self.turret.flywheelManual(0)
-		
 		
 	def teleopInit(self):
 		self.drive.brake()
@@ -215,6 +215,13 @@ class MyRobot(wpilib.TimedRobot):
 			temp = x*sin - y*cos
 			y = x*cos + y*sin
 			x = temp
+		
+		if self.joystick.getRawButton(11):
+			self.robotAngleController.setSetpoint(0)
+			z = self.robotAngleController.calculate(self.boundedNavx())
+		elif self.joystick.getRawButton(12):
+			self.robotAngleController.setSetpoint(180)
+			z = self.robotAngleController.calculate(self.boundedNavx())
 		
 		if max(abs(x),abs(y),abs(z)) != 0:
 			self.drive.move(x,y,z)

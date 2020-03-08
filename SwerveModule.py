@@ -45,6 +45,10 @@ class SwerveModule:
 		self.turnDeadband = .035 #this needs to be updated
 		self.moduleName = name
 		
+		self.x = 0
+		self.y = 0
+		self.pastPosition = 0
+		
 	def encoderBoundedPosition(self):
 		position = self.turnEncoder.getPosition()%360 #this limits the encoder input
 		if position < 0: #to be on a single circle
@@ -115,7 +119,12 @@ class SwerveModule:
 		wpilib.SmartDashboard.putNumber(self.moduleName,absolutePosition)
 		wpilib.SmartDashboard.putNumber(self.moduleName + " NEO",position)
 		
-	def basicPosition(self):
-		position = self.driveEncoder.getPosition()
-		return(position)
+	def autoPosition(self):
+		currentPosition = self.driveEncoder.getPosition()
+		difference = currentPosition - self.pastPosition
+		angle = self.encoderBoundedPosition()*math.pi/180
+		self.x += difference*cos(angle)
+		self.y += difference*sin(angle)
+		self.pastPosition = currentPosition
+		return(self.x,self.y)
 		

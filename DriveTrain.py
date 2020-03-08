@@ -105,11 +105,11 @@ class DriveTrain:
 		self.rearLeft.checkEncoders()
 		self.rearRight.checkEncoders()
 		
-	def drivePositions(self):
-		frontLeft = self.frontLeft.basicPosition()
-		frontRight = self.frontRight.basicPosition()
-		rearLeft = self.rearLeft.basicPosition()
-		rearRight = self.rearRight.basicPosition()
+	def averageWheelPosition(self):
+		frontLeftX, frontLeftY = self.frontLeft.autoPosition()
+		frontRightX, frontRightY = self.frontRight.autoPosition()
+		rearLeftX, rearLeftY = self.rearLeft.autoPosition()
+		rearRightX, rearRightY = self.rearRight.autoPosition()
 		
 		average = (abs(frontLeft)+abs(frontRight)+abs(rearLeft)+abs(rearRight))/4
 		return(average)
