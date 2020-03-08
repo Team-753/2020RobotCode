@@ -67,12 +67,12 @@ class SwerveModule:
 		self.driveMotor.set(driveSpeed)
 		self.turnMotor.set(turnSpeed)
 		
-		wpilib.SmartDashboard.putNumber(self.moduleName,position)
+		#wpilib.SmartDashboard.putNumber(self.moduleName,position)
 		
-		wpilib.SmartDashboard.putNumber(self.moduleName + " Position",position)
+		'''wpilib.SmartDashboard.putNumber(self.moduleName + " Position",position)
 		badVelocity = self.driveEncoder.getVelocity()
 		wpilib.SmartDashboard.putNumber(self.moduleName + " Velocity",badVelocity)
-		
+		'''
 	def stationary(self):
 		self.driveMotor.set(0) #this will be smoother once we drive with velocity PID (by setting setpoint to 0)
 		
@@ -83,9 +83,9 @@ class SwerveModule:
 			turnSpeed = 0
 		
 		self.turnMotor.set(turnSpeed) #just let the turn motor go to its most recent goal
-		wpilib.SmartDashboard.putNumber(self.moduleName + " Position",position)
+		'''wpilib.SmartDashboard.putNumber(self.moduleName + " Position",position)
 		badVelocity = self.driveEncoder.getVelocity()
-		wpilib.SmartDashboard.putNumber(self.moduleName + " Velocity",badVelocity)
+		wpilib.SmartDashboard.putNumber(self.moduleName + " Velocity",badVelocity)'''
 		
 	def returnAbsolutes(self):
 		position = self.absoluteEncoder.getValue()*self.absoluteEncoderConversion

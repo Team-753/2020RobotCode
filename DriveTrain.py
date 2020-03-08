@@ -11,14 +11,14 @@ class DriveTrain:
 	
 	def __init__(self):
 		self.frontLeft = SwerveModule(7,8,0,268,"Front Left") #drive ID, turn ID, encoder ID, encoder offset
-		self.frontRight = SwerveModule(1,2,2,216,"Front Right")
-		self.rearLeft = SwerveModule(5,6,3,160,"Rear Left")
-		self.rearRight = SwerveModule(3,4,1,17.6, "Rear Right")
+		self.frontRight = SwerveModule(1,2,2,354.4,"Front Right")
+		self.rearLeft = SwerveModule(5,6,3,160.2,"Rear Left")
+		self.rearRight = SwerveModule(3,4,1,2.1, "Rear Right")
 		
 	def move(self,x,y,z):
-		wpilib.SmartDashboard.putNumber("x",x)
+		'''wpilib.SmartDashboard.putNumber("x",x)
 		wpilib.SmartDashboard.putNumber("y",y)
-		wpilib.SmartDashboard.putNumber("z",z)
+		wpilib.SmartDashboard.putNumber("z",z)'''
 		
 		a = y - z*self.robotLength/self.diagonal
 		b = y + z*self.robotLength/self.diagonal

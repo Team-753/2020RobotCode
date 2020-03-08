@@ -37,7 +37,7 @@ class Turret:
 		self.turretController.setD(kDTurret)
 		self.turretController.setOutputRange(turretMinOutput,turretMaxOutput)
 		
-		self.flywheelController = self.turretMotor.getPIDController()
+		self.flywheelController = self.flywheelMotor.getPIDController()
 		self.flywheelController.setP(kPFlywheel)
 		self.flywheelController.setI(kIFlywheel)
 		self.flywheelController.setD(kDFlywheel)
@@ -52,6 +52,10 @@ class Turret:
 		
 	def turretManual(self,speed):
 		self.turretMotor.set(speed)
+		
+	def getFlywheelSpeed(self):
+		speed = self.flywheelEncoder.getVelocity()
+		return(speed)
 		
 	def turretPosition(self,goal):
 		position = self.turretEncoder.getPosition()

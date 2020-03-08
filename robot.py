@@ -9,11 +9,14 @@ from Feeder import Feeder
 from Intake import Intake
 from Turret import Turret
 from navx import AHRS
+from AutoTurret import Turret
+
 
 class MyRobot(wpilib.TimedRobot):
 	def robotInit(self):
 		self.navx = AHRS.create_spi()
 		wpilib.CameraServer.launch()
+		pilib.DigitalOutput(0).set(0)
 		
 		self.joystick = wpilib.Joystick(0)
 		self.auxiliary = wpilib.XboxController(1)
@@ -33,7 +36,7 @@ class MyRobot(wpilib.TimedRobot):
 		self.scaling = .8
 		self.intakeSpeed = .35
 		self.halfMoonSpeed = .8
-		self.feederSpeed = 10 #volts
+		self.feederSpeed = .85
 		self.turretSpeed = .085
 		self.climbExtend = .35
 		self.climbContract = .75
@@ -41,13 +44,15 @@ class MyRobot(wpilib.TimedRobot):
 		
 		self.navx.reset()
 		
+		wpilib.SmartDashboard.putNumber("Shooter RPM",0)
+		
 	def checkDeadband(self, axis, check):
 		if check:
-			deadband = wpilib.SmartDashboard.getNumber("Joystick deadband", self.joystickDeadband)
+			deadband = self.joystickDeadband
 			if abs(axis) < deadband:
 				axis = 0
 		else:
-			deadband = wpilib.SmartDashboard.getNumber("Joystick deadband", .4)
+			deadband = .4
 			if abs(axis) < deadband:
 				axis = 0
 		
@@ -66,11 +71,13 @@ class MyRobot(wpilib.TimedRobot):
 		intakeOut = self.auxiliary.getXButton()
 		climbUp = self.auxiliary.getYButton()
 		climbDown = self.auxiliary.getAButton()
-		turretClockwise = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand)
-		turretCounterclockwise = self.auxiliary(wpilib.interfaces.GenericHID.Hand.kLeftHand)
+		turretClockwise = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hand.kRightHand)
+		turretCounterclockwise = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hand.kLeftHand)
 		autoAim = False #trigger stuff
-		manualFlywheel = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hanf.kLeftHand)
+		manualFlywheel = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand)
 		feederIn = self.auxiliary.getBButton()
+		
+		autoFlywheelSpeed = wpilib.SmartDashboard.getNumber("Shooter RPM",4000)
 		
 		#intake control
 		if intakeIn:
@@ -89,20 +96,24 @@ class MyRobot(wpilib.TimedRobot):
 			self.climb.stop()
 		
 		if autoAim:
-			#auto aim code
-			pass
+			wpilib.DigitalOutput(0).set(1)
+			velocity = #regressed model
+			Turret().turretAlign(sd.getEntry('targetYaw').getDouble(0),velocity)
 		else:
 			#manual turret rotation
+			wpilib.DigitalOutput(0).set(0)
+			Turret().stopTurret()
+			
 			if turretClockwise:
-				self.turret.turretManual(-self.turretSpeed) #turret speed percent
-			elif turretCounterclockwise:
 				self.turret.turretManual(self.turretSpeed) #turret speed percent
+			elif turretCounterclockwise:
+				self.turret.turretManual(-self.turretSpeed) #turret speed percent
 			else:
 				self.turret.turretManual(0)
 			
 			#manual flywheel
 			if manualFlywheel:
-				self.turret.flywheelManual(flywheelSpeed) #voltage
+				self.turret.flywheelRPM(autoFlywheelSpeed)
 				if feederIn:
 					self.feeder.feed(self.feederSpeed)
 				else:
@@ -126,7 +137,22 @@ class MyRobot(wpilib.TimedRobot):
 		
 	def autonomousPeriodic(self):
 		#we should put something here at some point
-		pass
+		circumference = 4*math.pi
+		goDistance = 36 #inches
+		encoderPointsPerRev = 18
+		revsForFeeder = 500
+		
+		if self.drive.averageWheelPosition() < (goDistance/circumference)*encoderPointsPerRev:
+			self.drive.move(0,1,0)
+		else:
+			self.drive.stationary()
+			if self.feeder.getPosition() < revsForFeeder*encoderPointsPerRev:
+				self.feeder.feed(self.feederSpeed)
+				#aiming code
+			else:
+				self.feeder.stop()
+				self.turret.flywheelManual(0)
+		
 		
 	def teleopInit(self):
 		self.drive.brake()
@@ -137,14 +163,18 @@ class MyRobot(wpilib.TimedRobot):
 	def teleopPeriodic(self):
 		self.checkSwitches()
 		
+		ruben = self.turret.getFlywheelSpeed()
+		wpilib.SmartDashboard.putNumber("Flywheel speed output",ruben)
+		wpilib.SmartDashboard.putNumber("Flywheel speed graph",ruben)
+		
 		x = self.scaling*self.checkDeadband(self.joystick.getX(),True)
 		y = -self.scaling*self.checkDeadband(self.joystick.getY(),True)
-		z = self.scaling*self.checkDeadband(self.joystick.getZ(),False)
+		z = .6*self.scaling*self.checkDeadband(self.joystick.getZ(),False)
 		
 		if self.joystick.getRawButton(7):
-			x *= .25
-			y *= .25
-			z *= .25
+			x *= .3
+			y *= .3
+			z *= .3
 		
 		angle = -1*self.navx.getAngle() + 90
 		angle *= math.pi/180
@@ -161,6 +191,7 @@ class MyRobot(wpilib.TimedRobot):
 		else:
 			self.drive.stationary()
 		
+
 	def testInit(self):
 		self.drive.coast()
 		self.navx.reset()

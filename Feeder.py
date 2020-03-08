@@ -7,10 +7,10 @@ class Feeder:
 		self.feederEncoder = self.feederMotor.getEncoder()
 		
 	def feed(self, speed):
-		self.feederMotor.setVoltage(speed)
+		self.feederMotor.set(speed)
 		
 	def reverse(self, speed): #this is a forbidden method but may be necessary
-		self.feederMotor.setVoltage(-speed)
+		self.feederMotor.set(-speed)
 		
 	def stop(self):
 		self.feederMotor.set(0)
