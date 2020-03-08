@@ -50,7 +50,7 @@ class MyRobot(wpilib.TimedRobot):
 		
 		self.area = (sd.getEntry('targetFittedWidth').getDouble(0))*(sd.getEntry('targetFittedHeight').getDouble(0))
 		try :
-			self.distance = self.aNaught/self.area
+			self.distance = (self.aNaught/self.area)*self.dNaught
 			
 		except:
 			print("no area")

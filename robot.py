@@ -9,7 +9,26 @@ from Feeder import Feeder
 from Intake import Intake
 from Turret import Turret
 from navx import AHRS
+from networktables import NetworkTables
+import logging
+import sys
+import time
+import threading
 from AutoTurret import Turret
+
+cond = threading.Condition()
+notified = False
+def connectionListener(connected, info):
+	print(info, '; Connected=%s' % connected)
+	with cond:
+		notified = True 
+		cond.notify()
+
+# To see messages from networktables, you must setup logging 
+NetworkTables.initialize() 
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+
+sd = NetworkTables.getTable('chameleon-vision').getSubTable('Microsoft LifeCam HD-3000')
 
 
 class MyRobot(wpilib.TimedRobot):
@@ -46,6 +65,8 @@ class MyRobot(wpilib.TimedRobot):
 		
 		wpilib.SmartDashboard.putNumber("Shooter RPM",0)
 		
+		self.dNaught = 18.0416
+		self.aNaught = 5946
 	def checkDeadband(self, axis, check):
 		if check:
 			deadband = self.joystickDeadband
@@ -96,9 +117,18 @@ class MyRobot(wpilib.TimedRobot):
 			self.climb.stop()
 		
 		if autoAim:
+			self.area = (sd.getEntry('targetFittedWidth').getDouble(0))*(sd.getEntry('targetFittedHeight').getDouble(0))
+			try :
+				self.distance = (self.aNaught/self.area)*self.dNaught
+				
+			except:
+				print("no area")
+				self.distance = 1
 			wpilib.DigitalOutput(0).set(1)
-			velocity = #regressed model
+			velocity = 1#regressed model
 			Turret().turretAlign(sd.getEntry('targetYaw').getDouble(0),velocity)
+			
+			
 		else:
 			#manual turret rotation
 			wpilib.DigitalOutput(0).set(0)
