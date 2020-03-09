@@ -1,6 +1,7 @@
 import wpilib
 import rev
 import math
+from wpilib import controller as controller
 
 class Turret:
 	def __init__(self, turretID, flywheelID):
@@ -13,9 +14,9 @@ class Turret:
 		self.flywheelMotor.setInverted(True)
 		self.flywheelMotor.enableVoltageCompensation(12)
 		
-		self.turretEncoder.setPositionConversionFactor(12.414) #this definitely needs to change
+		self.turretEncoder.setPositionConversionFactor(2)
 		
-		kPTurret = .007
+		kPTurret = .018
 		kITurret = .004
 		kDTurret = 0
 		kIZoneTurret = 3 #degrees in which position error is integrated
@@ -37,7 +38,6 @@ class Turret:
 		self.flywheelTolerance = 30 #rpm
 		
 		self.turretController = wpilib.controller.PIDController(kPTurret,kITurret,kDTurret)
-		self.turretController.setOutputRange(turretMinOutput,turretMaxOutput)
 		
 		self.flywheelController = self.flywheelMotor.getPIDController()
 		self.flywheelController.setP(kPFlywheel)
@@ -53,7 +53,7 @@ class Turret:
 		velocity = 1 #this is an accurate model I promise
 		return(velocity)
 		
-	def aim(self,width,height):
+	def aim(self,width,height,yaw):
 		area = width*height
 		try:
 			distance = (self.aNaught/area)*self.dNaught
@@ -61,7 +61,7 @@ class Turret:
 			print("no area :(")
 			distance = 1
 		velocity = self.calculateSpeed(distance)
-		self.turretAlign(sd.getEntry('targetYaw').getDouble(0),velocity)
+		self.turretAlign(yaw,velocity)
 		
 	def flywheelManual(self,speed):
 		self.flywheelMotor.setVoltage(speed)

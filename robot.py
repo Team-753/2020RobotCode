@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import wpilib
+from wpilib import controller as controller
 import math
 from DriveTrain import DriveTrain
 from Climb import Climb
@@ -60,12 +61,6 @@ class MyRobot(wpilib.TimedRobot):
 		
 		wpilib.SmartDashboard.putNumber("Shooter RPM",0)
 		
-		kP = .0014
-		kI = .00035
-		kD = 0
-		self.robotAngleController = wpilib.controller.PIDController(kP, kI, kD)
-		self.robotAngleController.enableContinuousInput(-180,180)
-		
 	def checkDeadband(self, axis, check):
 		if check:
 			deadband = self.joystickDeadband
@@ -117,7 +112,7 @@ class MyRobot(wpilib.TimedRobot):
 		
 		if autoAim:
 			wpilib.DigitalOutput(0).set(1)
-			self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0))
+			self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
 		else:
 			#manual turret rotation
 			wpilib.DigitalOutput(0).set(0)
@@ -138,17 +133,6 @@ class MyRobot(wpilib.TimedRobot):
 			else:
 				self.turret.flywheelManual(0)
 				self.feeder.stop()
-		
-	def boundedNavx(self):
-		angle = self.drive.getRobotAngle()
-		angle %= 360
-		if angle < 0:
-			angle += 360
-		if angle < 90:
-			angle += 90
-		else:
-			angle -= 270
-		return angle
 		
 	def autonomousInit(self):
 		self.navx.reset()
@@ -178,7 +162,7 @@ class MyRobot(wpilib.TimedRobot):
 			if self.feeder.getPosition() < revsForFeeder*encoderPointsPerRev:
 				wpilib.DigitalOutput(0).set(1)
 				self.feeder.feed(self.feederSpeed)
-				self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0))
+				self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
 			else:
 				wpilib.DigitalOutput(0).set(0)
 				self.feeder.stop()
@@ -215,13 +199,6 @@ class MyRobot(wpilib.TimedRobot):
 			temp = x*sin - y*cos
 			y = x*cos + y*sin
 			x = temp
-		
-		if self.joystick.getRawButton(11):
-			self.robotAngleController.setSetpoint(0)
-			z = self.robotAngleController.calculate(self.boundedNavx())
-		elif self.joystick.getRawButton(12):
-			self.robotAngleController.setSetpoint(180)
-			z = self.robotAngleController.calculate(self.boundedNavx())
 		
 		if max(abs(x),abs(y),abs(z)) != 0:
 			self.drive.move(x,y,z)
