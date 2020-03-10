@@ -11,9 +11,9 @@ class DriveTrain:
 	
 	def __init__(self):
 		self.frontLeft = SwerveModule(7,8,0,268,"Front Left") #drive ID, turn ID, encoder ID, encoder offset
-		self.frontRight = SwerveModule(1,2,2,354.4,"Front Right")
-		self.rearLeft = SwerveModule(5,6,3,160.2,"Rear Left")
-		self.rearRight = SwerveModule(3,4,1,2.1, "Rear Right")
+		self.frontRight = SwerveModule(1,2,2,348.2,"Front Right")
+		self.rearLeft = SwerveModule(5,6,3,160.3,"Rear Left")
+		self.rearRight = SwerveModule(3,4,1,13.7, "Rear Right")
 		
 	def move(self,x,y,z):
 		'''wpilib.SmartDashboard.putNumber("x",x)
@@ -111,8 +111,9 @@ class DriveTrain:
 		rearLeftX, rearLeftY = self.rearLeft.autoPosition()
 		rearRightX, rearRightY = self.rearRight.autoPosition()
 		
-		average = (abs(frontLeft)+abs(frontRight)+abs(rearLeft)+abs(rearRight))/4
-		return(average)
+		averageX = (abs(frontLeftX)+abs(frontRightX)+abs(rearLeftX)+abs(rearRightX))/4
+		averageY = (abs(frontLeftY)+abs(frontRightY)+abs(rearLeftY)+abs(rearRightY))/4
+		return(averageX,averageY)
 		
 	def frontLeftPosition(self):
 		position = self.frontLeft.basicPosition()

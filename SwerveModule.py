@@ -123,8 +123,8 @@ class SwerveModule:
 		currentPosition = self.driveEncoder.getPosition()
 		difference = currentPosition - self.pastPosition
 		angle = self.encoderBoundedPosition()*math.pi/180
-		self.x += difference*cos(angle)
-		self.y += difference*sin(angle)
+		self.x += difference*math.cos(angle)
+		self.y += difference*math.sin(angle)
 		self.pastPosition = currentPosition
 		return(self.x,self.y)
 		

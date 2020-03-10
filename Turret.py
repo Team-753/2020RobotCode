@@ -16,10 +16,9 @@ class Turret:
 		
 		self.turretEncoder.setPositionConversionFactor(2)
 		
-		kPTurret = .018
-		kITurret = .004
-		kDTurret = 0
-		kIZoneTurret = 3 #degrees in which position error is integrated
+		self.kPTurret = .018
+		self.kITurret = .004
+		self.kDTurret = 0
 		turretMinOutput = -1
 		turretMaxOutput = 1
 		
@@ -34,10 +33,13 @@ class Turret:
 		self.turretMinPosition = -80
 		self.turretMaxPosition = 80
 		
-		self.turretTolerance = .25 #degrees
-		self.flywheelTolerance = 30 #rpm
+		self.turretTolerance = .1 #degrees
+		self.flywheelTolerance = 40 #rpm
 		
-		self.turretController = wpilib.controller.PIDController(kPTurret,kITurret,kDTurret)
+		self.turretController = wpilib.controller.PIDController(self.kPTurret,self.kITurret,self.kDTurret)
+		self.turretController.setSetpoint(0)
+		self.turretController.setTolerance(self.turretTolerance,0)
+		self.turretController.setIntegratorRange(-50,50)
 		
 		self.flywheelController = self.flywheelMotor.getPIDController()
 		self.flywheelController.setP(kPFlywheel)
@@ -46,21 +48,24 @@ class Turret:
 		self.flywheelController.setFF(kFFFlywheel)
 		self.flywheelController.setOutputRange(flywheelMinOutput,flywheelMaxOutput)
 		
-		self.dNaught = 18.0416
+		self.dNaught = 196 #meters
+
 		self.aNaught = 5946
+		self.hNaught = 57.11 #determined
 		
 	def calculateSpeed(self,distance):
-		velocity = 1 #this is an accurate model I promise
+		velocity = wpilib.SmartDashboard.getNumber("Shooter RPM",0) #this is an accurate model I promise
 		return(velocity)
 		
-	def aim(self,width,height,yaw):
-		area = width*height
+	def aim(self,height,yaw):
 		try:
-			distance = (self.aNaught/area)*self.dNaught
+			distance = (self.hNaught/height)*self.dNaught
+			
 		except:
-			print("no area :(")
+			print("no length :(")
 			distance = 1
 		velocity = self.calculateSpeed(distance)
+		wpilib.SmartDashboard.putNumber("distance",distance)
 		self.turretAlign(yaw,velocity)
 		
 	def flywheelManual(self,speed):
@@ -78,13 +83,19 @@ class Turret:
 		
 	def turretAlign(self,yaw,velocity):
 		turretOutput = -1*self.turretController.calculate(yaw)
+		wpilib.SmartDashboard.putNumber("output",turretOutput)
 		position = self.turretEncoder.getPosition()
 		
 		if self.turretMinPosition < position < self.turretMaxPosition:
-			if abs(yaw) < self.turretTolerance:
-				self.turretController.setReference(goal,rev.ControlType.kPosition)
+			if self.turretController.atSetpoint():
+				self.turretController.reset()
+				self.turretController = wpilib.controller.PIDController(self.kPTurret,self.kITurret,self.kDTurret)
+			else:
+				self.turretMotor.set(turretOutput)
 		else:
 			self.turretMotor.set(0)
+			self.turretController.reset()
+			wpilib.controller.PIDController(self.kPTurret,self.kITurret,self.kDTurret)
 		self.flywheelRPM(velocity)
 		velocityDifference = velocity - self.flywheelEncoder.getVelocity()
 		if (abs(yaw) < self.turretTolerance) and (abs(velocityDifference) < self.flywheelTolerance):

@@ -48,7 +48,7 @@ class MyRobot(wpilib.TimedRobot):
 		
 		#constants
 		self.joystickDeadband = .2
-		self.scaling = .85
+		self.scaling = .55
 		self.intakeSpeed = .35
 		self.halfMoonSpeed = .8
 		self.feederSpeed = .85
@@ -112,7 +112,11 @@ class MyRobot(wpilib.TimedRobot):
 		
 		if autoAim:
 			wpilib.DigitalOutput(0).set(1)
-			self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
+			self.turret.aim(sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
+			if feederIn:
+					self.feeder.feed(self.feederSpeed)
+			else:
+				self.feeder.stop()
 		else:
 			#manual turret rotation
 			wpilib.DigitalOutput(0).set(0)
@@ -156,13 +160,13 @@ class MyRobot(wpilib.TimedRobot):
 		
 		x,y = self.drive.averageWheelPosition()
 		if y < (goDistanceY/circumference)*encoderPointsPerRev:
-			self.drive.move(0,1,0)
+			self.drive.move(0,.15,0)
 		else:
 			self.drive.stationary()
 			if self.feeder.getPosition() < revsForFeeder*encoderPointsPerRev:
 				wpilib.DigitalOutput(0).set(1)
 				self.feeder.feed(self.feederSpeed)
-				self.turret.aim(sd.getEntry('targetFittedWidth').getDouble(0),sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
+				self.turret.aim(sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
 			else:
 				wpilib.DigitalOutput(0).set(0)
 				self.feeder.stop()
@@ -210,8 +214,10 @@ class MyRobot(wpilib.TimedRobot):
 		self.drive.coast()
 		self.navx.reset()
 		print("Starting tests")
+		wpilib.DigitalOutput(0).set(1)
 		
 	def testPeriodic(self):
+		print(str(sd.getEntry('targetFittedHeight').getDouble(0)))
 		self.drive.checkEncoders()
 		if self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand):
 			self.turret.turretManual(-self.turretSpeed)
