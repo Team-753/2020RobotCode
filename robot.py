@@ -62,7 +62,7 @@ class MyRobot(wpilib.TimedRobot):
 		self.kP = 0.0016
 		self.kI = 0.0003
 		self.kD = 0
-		self.driveAngleController = wpilib.Controller.PIDController(self.kP,self.kI,self.kD)
+		self.driveAngleController = wpilib.controller.PIDController(self.kP,self.kI,self.kD)
 		self.driveAngleController.enableContinuousInput(-180,180)
 		
 		wpilib.SmartDashboard.putNumber("Shooter RPM",0)
