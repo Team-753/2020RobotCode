@@ -16,9 +16,14 @@ class Turret:
 		
 		self.turretEncoder.setPositionConversionFactor(2)
 		
-		self.kPTurret = .018
-		self.kITurret = .004
-		self.kDTurret = 0
+		self.kPTurretFar = .021
+		self.kITurretFar = 0
+		self.kDTurretFar = 0
+		
+		self.kPTurretNear = .01
+		self.kITurretNear = .009
+		self.kDTurretNear = 0
+		
 		turretMinOutput = -1
 		turretMaxOutput = 1
 		
@@ -33,13 +38,19 @@ class Turret:
 		self.turretMinPosition = -80
 		self.turretMaxPosition = 80
 		
-		self.turretTolerance = .1 #degrees
-		self.flywheelTolerance = 40 #rpm
+		self.turretToleranceFar = 3 #degrees
+		self.turretToleranceNear = .1 #degrees
+		self.flywheelTolerance = 35 #rpm
 		
-		self.turretController = wpilib.controller.PIDController(self.kPTurret,self.kITurret,self.kDTurret)
-		self.turretController.setSetpoint(0)
-		self.turretController.setTolerance(self.turretTolerance,0)
-		self.turretController.setIntegratorRange(-50,50)
+		self.turretControllerFar = wpilib.controller.PIDController(self.kPTurretFar,self.kITurretFar,self.kDTurretFar)
+		self.turretControllerFar.setSetpoint(0)
+		self.turretControllerFar.setTolerance(self.turretToleranceFar,0)
+		self.turretControllerFar.setIntegratorRange(-50,50) #idk what this does
+		
+		self.turretControllerNear = wpilib.controller.PIDController(self.kPTurretNear,self.kITurretNear,self.kDTurretNear)
+		self.turretControllerNear.setSetpoint(0)
+		self.turretControllerNear.setTolerance(self.turretToleranceNear,0)
+		self.turretControllerNear.setIntegratorRange(-50,50)
 		
 		self.flywheelController = self.flywheelMotor.getPIDController()
 		self.flywheelController.setP(kPFlywheel)
@@ -87,18 +98,20 @@ class Turret:
 		position = self.turretEncoder.getPosition()
 		
 		if self.turretMinPosition < position < self.turretMaxPosition:
-			if self.turretController.atSetpoint():
-				self.turretController.reset()
-				self.turretController = wpilib.controller.PIDController(self.kPTurret,self.kITurret,self.kDTurret)
+			if self.turretControllerFar.atSetpoint():
+				if self.turretControllerNear.atSetpoint():
+					turretOutput = -self.turretControllerNear.calculate(yaw)
+				else:
+					turretOutput = 0
 			else:
-				self.turretMotor.set(turretOutput)
+				turretOutput = -self.turretControllerFar.calculate(yaw)
 		else:
-			self.turretMotor.set(0)
-			self.turretController.reset()
-			wpilib.controller.PIDController(self.kPTurret,self.kITurret,self.kDTurret)
+			turretOutput = 0
+		
+		self.turretMotor.set(turretOutput)
 		self.flywheelRPM(velocity)
 		velocityDifference = velocity - self.flywheelEncoder.getVelocity()
-		if (abs(yaw) < self.turretTolerance) and (abs(velocityDifference) < self.flywheelTolerance):
+		if self.turretControllerNear.atSetpoint() and (abs(velocityDifference) < self.flywheelTolerance):
 			wpilib.SmartDashboard.putBoolean("Ready to fire!",True)
 		else:
 			wpilib.SmartDashboard.putBoolean("Ready to fire!",False)

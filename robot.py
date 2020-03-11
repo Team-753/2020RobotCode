@@ -59,6 +59,12 @@ class MyRobot(wpilib.TimedRobot):
 		
 		self.navx.reset()
 		
+		self.kP = 0.0016
+		self.kI = 0.0003
+		self.kD = 0
+		self.driveAngleController = wpilib.Controller.PIDController(self.kP,self.kI,self.kD)
+		self.driveAngleController.enableContinuousInput(-180,180)
+		
 		wpilib.SmartDashboard.putNumber("Shooter RPM",0)
 		
 	def checkDeadband(self, axis, check):
@@ -79,6 +85,15 @@ class MyRobot(wpilib.TimedRobot):
 		axis *= 1/(1-deadband)
 		
 		return axis
+		
+	def navxBoundedPosition(self):
+		angle = -1*self.navx.getAngle() + 90
+		angle %= 360
+		if angle < -180:
+			angle += 360
+		elif angle > 180:
+			angle -= 360
+		return(angle)
 		
 	def checkSwitches(self):
 		#buttons list
@@ -187,29 +202,35 @@ class MyRobot(wpilib.TimedRobot):
 		
 		x = self.scaling*self.checkDeadband(self.joystick.getX(),True)
 		y = -self.scaling*self.checkDeadband(self.joystick.getY(),True)
-		z = .6*self.scaling*self.checkDeadband(self.joystick.getZ(),False)
+		z = .65*self.scaling*self.checkDeadband(self.joystick.getZ(),False)
 		
 		if self.joystick.getRawButton(7):
 			x *= .3
 			y *= .3
 			z *= .3
 		
-		angle = -1*self.navx.getAngle() + 90
-		angle *= math.pi/180
+		angleDegrees = self.navxBoundedPosition()
+		angleRadians = angleDegrees*math.pi/180
 		
 		if not self.joystick.getRawButton(1):
-			cos = math.cos(angle)
-			sin = math.sin(angle)
+			cos = math.cos(angleRadians)
+			sin = math.sin(angleRadians)
 			temp = x*sin - y*cos
 			y = x*cos + y*sin
 			x = temp
+		
+		if self.joystick.getRawButton(11):
+			self.driveAngleController.setSetpoint(90)
+			z = self.driveAngleController.calculate(angleDegrees)
+		if self.joystick.getRawButton(12):
+			self.driveAngleController.setSetpoint(-90)
+			z = self.driveAngleController.calculate(angleDegrees)
 		
 		if max(abs(x),abs(y),abs(z)) != 0:
 			self.drive.move(x,y,z)
 		else:
 			self.drive.stationary()
 		
-
 	def testInit(self):
 		self.drive.coast()
 		self.navx.reset()
