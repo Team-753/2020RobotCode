@@ -127,7 +127,11 @@ class MyRobot(wpilib.TimedRobot):
 		
 		if autoAim:
 			wpilib.DigitalOutput(0).set(1)
+			
+			#,sd.getEntry('isValid').getBoolean()
 			self.turret.aim(sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
+			wpilib.SmartDashboard.putNumber("rec height",sd.getEntry('targetFittedHeight').getDouble(0))
+			
 			if feederIn:
 					self.feeder.feed(self.feederSpeed)
 			else:

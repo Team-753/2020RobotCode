@@ -10,10 +10,10 @@ class DriveTrain:
 	diagonal = math.hypot(robotLength,robotWidth)
 	
 	def __init__(self):
-		self.frontLeft = SwerveModule(7,8,0,268,"Front Left") #drive ID, turn ID, encoder ID, encoder offset
-		self.frontRight = SwerveModule(1,2,2,348.2,"Front Right")
+		self.frontLeft = SwerveModule(7,8,0,267.5,"Front Left") #drive ID, turn ID, encoder ID, encoder offset
+		self.frontRight = SwerveModule(1,2,2,357.6,"Front Right")
 		self.rearLeft = SwerveModule(5,6,3,160.3,"Rear Left")
-		self.rearRight = SwerveModule(3,4,1,13.7, "Rear Right")
+		self.rearRight = SwerveModule(3,4,1,197.7, "Rear Right")
 		
 	def move(self,x,y,z):
 		'''wpilib.SmartDashboard.putNumber("x",x)

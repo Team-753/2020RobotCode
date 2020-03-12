@@ -16,12 +16,12 @@ class Turret:
 		
 		self.turretEncoder.setPositionConversionFactor(2)
 		
-		self.kPTurretFar = .021
+		self.kPTurretFar = .019
 		self.kITurretFar = 0
 		self.kDTurretFar = 0
 		
-		self.kPTurretNear = .01
-		self.kITurretNear = .009
+		self.kPTurretNear = .006
+		self.kITurretNear = .006
 		self.kDTurretNear = 0
 		
 		turretMinOutput = -1
@@ -59,10 +59,10 @@ class Turret:
 		self.flywheelController.setFF(kFFFlywheel)
 		self.flywheelController.setOutputRange(flywheelMinOutput,flywheelMaxOutput)
 		
-		self.dNaught = 196 #meters
+		self.dNaught = 221 #icnhes
 
 		self.aNaught = 5946
-		self.hNaught = 57.11 #determined
+		self.hNaught = 110 #determined
 		
 	def calculateSpeed(self,distance):
 		velocity = wpilib.SmartDashboard.getNumber("Shooter RPM",0) #this is an accurate model I promise
@@ -93,8 +93,6 @@ class Turret:
 		return(speed)
 		
 	def turretAlign(self,yaw,velocity):
-		turretOutput = -1*self.turretController.calculate(yaw)
-		wpilib.SmartDashboard.putNumber("output",turretOutput)
 		position = self.turretEncoder.getPosition()
 		
 		if self.turretMinPosition < position < self.turretMaxPosition:
