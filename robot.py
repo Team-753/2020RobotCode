@@ -56,6 +56,7 @@ class MyRobot(wpilib.TimedRobot):
 		self.climbExtend = .35
 		self.climbContract = .75
 		self.manualFlywheelSpeed = 8.5 #volts
+		self.fieldOrient = True # toggle this boolean to swap between field orient and non-field orient driving
 		
 		self.navx.reset()
 		
@@ -199,6 +200,7 @@ class MyRobot(wpilib.TimedRobot):
 		
 	def teleopPeriodic(self):
 		self.checkSwitches()
+		self.drive.checkEncoders()
 		
 		ruben = self.turret.getFlywheelSpeed()
 		wpilib.SmartDashboard.putNumber("Flywheel speed output",ruben)
@@ -207,6 +209,8 @@ class MyRobot(wpilib.TimedRobot):
 		x = self.scaling*self.checkDeadband(self.joystick.getX(),True)
 		y = -self.scaling*self.checkDeadband(self.joystick.getY(),True)
 		z = .65*self.scaling*self.checkDeadband(self.joystick.getZ(),False)
+		throttle = self.joystick.getThrottle()
+		wpilib.SmartDashboard.putNumber("Throttle",throttle)
 		
 		if self.joystick.getRawButton(7):
 			x *= .3
@@ -216,12 +220,13 @@ class MyRobot(wpilib.TimedRobot):
 		angleDegrees = self.navxBoundedPosition()
 		angleRadians = angleDegrees*math.pi/180
 		
-		if not self.joystick.getRawButton(1):
-			cos = math.cos(angleRadians)
-			sin = math.sin(angleRadians)
-			temp = x*sin - y*cos
-			y = x*cos + y*sin
-			x = temp
+		if self.fieldOrient:
+			if not self.joystick.getRawButton(1):
+				cos = math.cos(angleRadians)
+				sin = math.sin(angleRadians)
+				temp = x*sin - y*cos
+				y = x*cos + y*sin
+				x = temp
 		
 		if self.joystick.getRawButton(11):
 			self.driveAngleController.setSetpoint(90)
@@ -232,6 +237,8 @@ class MyRobot(wpilib.TimedRobot):
 		
 		if max(abs(x),abs(y),abs(z)) != 0:
 			self.drive.move(x,y,z)
+		elif throttle <= -.5:
+			self.drive.coast()
 		else:
 			self.drive.stationary()
 		
