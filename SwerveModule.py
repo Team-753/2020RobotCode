@@ -7,7 +7,7 @@ from wpilib import controller as controller
 class SwerveModule:
 	wheelDiameter = 4 #inches
 	turnMotorEncoderConversion = 20 #NEO encoder gives 0-18 as 1 full rotation
-	absoluteEncoderConversion = .08877
+	absoluteEncoderConversion = .1598
 	
 	def __init__(self,driveID,turnID,encoderID,encoderOffset,name):
 		if name == "Front Left":
@@ -116,7 +116,7 @@ class SwerveModule:
 	def checkEncoders(self):
 		absolutePosition = self.absoluteEncoder.getValue()*self.absoluteEncoderConversion
 		position = self.encoderBoundedPosition()
-		wpilib.SmartDashboard.putNumber(self.moduleName,absolutePosition)
+		wpilib.SmartDashboard.putNumber(self.moduleName + "ABS",absolutePosition)
 		wpilib.SmartDashboard.putNumber(self.moduleName + " NEO",position)
 		
 	def autoPosition(self):
