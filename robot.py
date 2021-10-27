@@ -11,6 +11,8 @@ from Turret import Turret
 from navx import AHRS
 from networktables import NetworkTables
 import threading
+import os
+import json
 
 cond = threading.Condition()
 notified = False
@@ -26,6 +28,10 @@ NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 
 sd = NetworkTables.getTable('chameleon-vision').getSubTable('Microsoft LifeCam HD-3000')
 
+myPath = os.path.dirname(os.path.abspath(__file__))
+fName = os.path.join(myPath, 'config.json')
+with open(fName, "r") as f1:
+	config = json.load(f1)
 
 class MyRobot(wpilib.TimedRobot):
 	def robotInit(self):
@@ -35,8 +41,8 @@ class MyRobot(wpilib.TimedRobot):
 		
 		self.joystick = wpilib.Joystick(0)
 		self.auxiliary = wpilib.XboxController(1)
-		
-		self.drive = DriveTrain()
+
+		self.drive = DriveTrain(config)
 		self.climb = Climb(16) #climb ID
 		self.feeder = Feeder(9) #feeder ID
 		self.intake = Intake(11,10) #intake ID, half moon ID
@@ -56,7 +62,8 @@ class MyRobot(wpilib.TimedRobot):
 		self.climbExtend = .35
 		self.climbContract = .75
 		self.manualFlywheelSpeed = 8.5 #volts
-		self.fieldOrient = True # toggle this boolean to swap between field orient and non-field orient driving
+		self.flywheelConversionFactor = 7000
+		self.fieldOrient = config['fieldOrient'] # toggle this boolean to swap between field orient and non-field orient driving
 		
 		self.navx.reset()
 		
@@ -98,18 +105,16 @@ class MyRobot(wpilib.TimedRobot):
 		
 	def checkSwitches(self):
 		#buttons list
-		intakeIn = self.joystick.getRawButton(2)
-		intakeOut = self.auxiliary.getXButton()
+		intakeIn = self.auxiliary.getXButton()
+		intakeOut = self.auxiliary.getBButton()
 		climbUp = self.auxiliary.getYButton()
 		climbDown = self.auxiliary.getAButton()
-		turretClockwise = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hand.kRightHand)
-		turretCounterclockwise = self.auxiliary.getStickButton(wpilib.interfaces.GenericHID.Hand.kLeftHand)
-		autoAim = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand)
-		manualFlywheel = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kLeftHand)
-		feederIn = self.auxiliary.getBButton()
-		
-		manualFlywheelSpeed = wpilib.SmartDashboard.getNumber("Shooter RPM",4000)
-		
+		turretClockwise = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kRightHand)
+		turretCounterclockwise = self.auxiliary.getBumper(wpilib.interfaces.GenericHID.Hand.kLeftHand)
+		manualFlywheel = self.auxiliary.getTriggerAxis(wpilib.interfaces.GenericHID.Hand.kLeftHand) * self.flywheelConversionFactor
+		feederIn = self.auxiliary.getTriggerAxis(wpilib.interfaces.GenericHID.Hand.kRightHand)
+		autoAim = self.auxiliary.getStartButton()
+
 		#intake control
 		if intakeIn:
 			self.intake.collect(self.intakeSpeed,self.halfMoonSpeed) #intake speed, half moon speed
@@ -127,7 +132,7 @@ class MyRobot(wpilib.TimedRobot):
 			self.climb.stop()
 		
 		if autoAim:
-			wpilib.DigitalOutput(0).set(1)
+			wpilib.DigitalOutput(0).set(1) #this is what sends the "true" value to the raspberry pi to flash the green LEDs
 			
 			#,sd.getEntry('isValid').getBoolean()
 			self.turret.aim(sd.getEntry('targetFittedHeight').getDouble(0),sd.getEntry('targetYaw').getDouble(0))
@@ -138,7 +143,6 @@ class MyRobot(wpilib.TimedRobot):
 			else:
 				self.feeder.stop()
 		else:
-			#manual turret rotation
 			wpilib.DigitalOutput(0).set(0)
 			if turretClockwise:
 				self.turret.turretManual(self.turretSpeed) #turret speed percent
@@ -148,13 +152,17 @@ class MyRobot(wpilib.TimedRobot):
 				self.turret.turretManual(0)
 			
 			#manual flywheel
-			if manualFlywheel:
+			if manualFlywheel >= 500: # hoping the input range is 0-10k, screw it i am converting it
+				wpilib.SmartDashboard.putNumber("Shooter RPM", manualFlywheel)
+				manualFlywheelSpeed = manualFlywheel # haha if this works it will be the big funny
 				self.turret.flywheelRPM(manualFlywheelSpeed)
-				if feederIn:
+				if feederIn >= 0.1:
 					self.feeder.feed(self.feederSpeed)
 				else:
 					self.feeder.stop()
 			else:
+				wpilib.SmartDashboard.putNumber("Shooter RPM", 0)
+				manualFlywheelSpeed = 0
 				self.turret.flywheelManual(0)
 				self.feeder.stop()
 		
@@ -211,6 +219,7 @@ class MyRobot(wpilib.TimedRobot):
 		z = .65*self.scaling*self.checkDeadband(self.joystick.getZ(),False)
 		throttle = self.joystick.getThrottle()
 		wpilib.SmartDashboard.putNumber("Throttle",throttle)
+		wpilib.SmartDashboard.putBoolean("Field Orient", self.fieldOrient)
 		
 		if self.joystick.getRawButton(7):
 			x *= .3
@@ -234,6 +243,25 @@ class MyRobot(wpilib.TimedRobot):
 		if self.joystick.getRawButton(12):
 			self.driveAngleController.setSetpoint(-90)
 			z = self.driveAngleController.calculate(angleDegrees)
+		if self.auxiliary.getBackButtonReleased(): # swaps the field orient boolean
+			if self.fieldOrient:
+				self.fieldOrient = False
+			else:
+				self.navx.reset()
+				self.fieldOrient = True
+		if self.joystick.getRawButton(8):
+			offsets = self.drive.giveAbsolutes()
+			newConfig = {
+				"fieldOrient": self.fieldOrient,
+				"Front Left": offsets[0],
+				"Front Right": offsets[1],
+				"Rear Left": offsets[2],
+				"Rear Right": offsets[3]
+			}
+			updatedFile = json.dumps(newConfig, indent=2)
+			with open (fName, "w") as f2:
+				f2.write(updatedFile)
+			self.drive.zeroEncoders()
 		
 		if max(abs(x),abs(y),abs(z)) != 0:
 			self.drive.move(x,y,z)
